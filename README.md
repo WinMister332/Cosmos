@@ -1,4 +1,4 @@
-# Cosmos Website
+# Cosmos Test#1
 
 For instructions on how to install and use Cosmos, please visit [www.goCosmos.org](http://www.goCosmos.org).
 
