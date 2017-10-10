@@ -12,6 +12,27 @@ namespace Cosmos.HAL
     public abstract class NetworkDevice : Device
     {
         public static List<NetworkDevice> Devices { get; private set; }
+        public static List<PCIDevice> Card;
+
+        public static void GetNetCard()
+        {
+            PCIDevice card = PCI.GetDeviceClass(0x02, 0x00);
+            if (card == null)
+            {
+                Console.WriteLine("Not network card found!");
+            }
+            else
+            {
+                PCIDevice card_AMDPcnETTII = PCI.GetDevice(0x1022, 0x2000);
+                //PCIDevice card_AMDPcnETTII = PCI.GetDevice(0x1022, 0x2000);
+                Card.Add(card_AMDPcnETTII);
+            }
+
+            foreach (var netcard in Card)
+            {
+                Console.WriteLine(netcard);
+            }
+        }
 
         static NetworkDevice()
         {
