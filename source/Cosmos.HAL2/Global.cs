@@ -1,8 +1,8 @@
 ﻿using System;
-
 using Cosmos.Core;
 using Cosmos.Debug.Kernel;
 using Cosmos.HAL.BlockDevice;
+using Cosmos.HAL.Drivers.PCI.Controllers;
 
 namespace Cosmos.HAL
 {
@@ -15,7 +15,6 @@ namespace Cosmos.HAL
 
     public static TextScreenBase TextScreen = new TextScreen();
     public static PCI Pci;
-    public static int atamode;
 
     static public void Init(TextScreenBase textScreen)
     {
@@ -47,91 +46,31 @@ namespace Cosmos.HAL
 
       mDebugger.Send("Done initializing Cosmos.HAL.Global");
 
-      if (atamode == 1)
-      {
-        //TODO Implement an AHCI Driver
-      }
-      else if (atamode == 2)
-      {
-        //TODO Implement a RAID Driver
-      }
-      else if (atamode == 3)
+      // Currently ATA won't be initialized until we find a solution for the
+      // Two Controllers initialize bug
+      if (PCI.GetDeviceClass(0x01, 0x01) != null)
       {
         mDebugger.Send("ATA Primary Master");
-        InitAta(Ata.ControllerIdEnum.Primary, Ata.BusPositionEnum.Master);
-
-        //TODO Need to change code to detect if ATA controllers are present or not. How to do this? via PCI enum?
-        // They do show up in PCI space as well as the fixed space.
-        // Or is it always here, and was our compiler stack corruption issue?
+        IDE ATA1 = new IDE(Ata.ControllerIdEnum.Primary, Ata.BusPositionEnum.Master);
         mDebugger.Send("ATA Secondary Master");
-        InitAta(Ata.ControllerIdEnum.Secondary, Ata.BusPositionEnum.Master);
+        IDE ATA2 = new IDE(Ata.ControllerIdEnum.Secondary, Ata.BusPositionEnum.Master);
         //InitAta(BlockDevice.Ata.ControllerIdEnum.Secondary, BlockDevice.Ata.BusPositionEnum.Slave);
       }
+      if (PCI.GetDeviceClass(0x01, 0x06) != null)
+      {
+        Console.WriteLine("Initializing AHCI Controller");
+        AHCI xAHCI = new AHCI(PCI.GetDeviceClass(0x01, 0x06).BaseAddressBar[5].BaseAddress);
+      }
+      else if (PCI.GetDeviceClass(0x01, 0x01) == null)
+      {
+        Console.Write("Booting without ATA Initialization");
+      }
+
     }
 
     public static void EnableInterrupts()
     {
       CPU.EnableInterrupts();
-    }
-
-    private static void InitAta(Ata.ControllerIdEnum aControllerID,
-                                Ata.BusPositionEnum aBusPosition)
-    {
-      var xIO = aControllerID == Ata.ControllerIdEnum.Primary
-                  ? Core.Global.BaseIOGroups.ATA1
-                  : Core.Global.BaseIOGroups.ATA2;
-      var xATA = new AtaPio(xIO, aControllerID, aBusPosition);
-      if (xATA.DriveType == AtaPio.SpecLevel.Null)
-      {
-        return;
-      }
-      if (xATA.DriveType == AtaPio.SpecLevel.ATA)
-      {
-        BlockDevice.BlockDevice.Devices.Add(xATA);
-        Ata.AtaDebugger.Send("ATA device with speclevel ATA found.");
-      }
-      else
-      {
-        //Ata.AtaDebugger.Send("ATA device with spec level " + (int)xATA.DriveType +
-        //                     " found, which is not supported!");
-        return;
-      }
-      var xMbrData = new byte[512];
-      xATA.ReadBlock(0UL, 1U, xMbrData);
-      var xMBR = new MBR(xMbrData);
-
-      if (xMBR.EBRLocation != 0)
-      {
-        //EBR Detected
-        var xEbrData = new byte[512];
-        xATA.ReadBlock(xMBR.EBRLocation, 1U, xEbrData);
-        var xEBR = new EBR(xEbrData);
-
-        for (int i = 0; i < xEBR.Partitions.Count; i++)
-        {
-          //var xPart = xEBR.Partitions[i];
-          //var xPartDevice = new BlockDevice.Partition(xATA, xPart.StartSector, xPart.SectorCount);
-          //BlockDevice.BlockDevice.Devices.Add(xPartDevice);
-        }
-      }
-
-      // TODO Change this to foreach when foreach is supported
-      Ata.AtaDebugger.Send("Number of MBR partitions found:");
-      Ata.AtaDebugger.SendNumber(xMBR.Partitions.Count);
-      for (int i = 0; i < xMBR.Partitions.Count; i++)
-      {
-        var xPart = xMBR.Partitions[i];
-        if (xPart == null)
-        {
-          Console.WriteLine("Null partition found at idx: " + i);
-        }
-        else
-        {
-          var xPartDevice = new Partition(xATA, xPart.StartSector, xPart.SectorCount);
-          BlockDevice.BlockDevice.Devices.Add(xPartDevice);
-          Console.WriteLine("Found partition at idx" + i);
-        }
-      }
     }
 
     public static bool InterruptsEnabled => CPU.mInterruptsEnabled;
