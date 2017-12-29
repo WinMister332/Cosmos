@@ -13,7 +13,9 @@ namespace Cosmos.HAL.BlockDevice
     public class AHCI
     {
         internal static Debugger mAHCIDebugger = new Debugger("HAL", "AHCI");
-        internal static PCIDevice xDevice = HAL.PCI.GetDevice(0x001, 0x0006);
+        internal static PCIDevice xDevice = HAL.PCI.GetDeviceClass(HAL.ClassID.MassStorageController,
+                                                                   HAL.SubclassID.SATAController,
+                                                                   HAL.ProgramIF.SATA_AHCI);
 
         private static List<StoragePort> mPorts = new List<StoragePort>();
         private static GenericRegisters mGeneric;
@@ -66,13 +68,12 @@ namespace Cosmos.HAL.BlockDevice
 
         public AHCI(PCIDevice aAHCIDevice)
         {
-            mAHCIDebugger.Send("Something wrong!");
             aAHCIDevice.EnableBusMaster(true);
             aAHCIDevice.EnableMemory(true);
 
             mABAR = aAHCIDevice.BaseAddressBar[5].BaseAddress;
             mGeneric = new GenericRegisters(aAHCIDevice.BaseAddressBar[5].BaseAddress);
-            mGeneric.GlobalHostControl |= (1U << 31);
+            mGeneric.GlobalHostControl |= (1U << 31); // Enable AHCI
 
             GetCapabilities();
             mPorts.Capacity = (int)NumOfPorts;
@@ -252,19 +253,19 @@ namespace Cosmos.HAL.BlockDevice
             var xDET = (DeviceDetectionStatus)(aPort.SSTS & 0x0F);
             var xSignature = aPort.SIG;
 
-            // Check if not reading wrong data!
+            // Check if the port is active!
             if (xIPM != InterfacePowerManagementStatus.Active)
                 return PortType.Nothing;
             if (xDET != DeviceDetectionStatus.DeviceDetectedWithPhy)
                 return PortType.Nothing;
 
-            switch (xSignature >> 16)
+            switch ((AHCISignature)xSignature >> 16)
             {
-                case 0xEB14: return PortType.SATAPI;
-                case 0xC33C: return PortType.SEMB;
-                case 0x9669: return PortType.PM;
-                case 0xFFFF: return PortType.Nothing;
-                default: return PortType.SATA;
+                case AHCISignature.SATA: return PortType.SATA;
+                case AHCISignature.SATAPI: return PortType.SATAPI;
+                case AHCISignature.SEMB: return PortType.SEMB;
+                case AHCISignature.PortMultiplier: return PortType.PM;
+                case AHCISignature.Nothing: return PortType.Nothing;
             }
         }
 
