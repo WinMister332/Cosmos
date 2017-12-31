@@ -4,12 +4,13 @@ using System.Text;
 using Cosmos.Core.Memory.Old;
 using Cosmos.HAL.BlockDevice.Registers;
 using Cosmos.Core;
+using Cosmos.Debug.Kernel;
 
 namespace Cosmos.HAL.BlockDevice.Ports
 {
     public class SATAPI : StoragePort
     {
-        public Debug.Kernel.Debugger mSATAPIDebugger = new Debug.Kernel.Debugger("HAL", "SATAPI");
+        internal static Debugger mSATAPIDebugger = new Debugger("HAL", "SATAPI");
 
         public PortRegisters mPortReg;
 
@@ -23,11 +24,7 @@ namespace Cosmos.HAL.BlockDevice.Ports
             // Check if it is really a SATAPI Port!
             if (aSATAPIPort.mPortType != PortType.SATAPI || (aSATAPIPort.CMD & (1U << 24)) == 0)
             {
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.Write("\n[Error]");
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($" 0:{aSATAPIPort.mPortNumber} is not a SATAPI port!");
-                return;
+                throw new Exception($"SATAPI Error: 0:{mPortNumber} is not SATAPI port!");
             }
             mSATAPIDebugger.Send("SATAPI Constructor");
 
@@ -91,10 +88,7 @@ namespace Cosmos.HAL.BlockDevice.Ports
 
             if (xSpin == 1000000)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write("\n[Error]: ");
-                Console.Write("Port timed out!");
-                Console.ResetColor();
+                mSATAPIDebugger.Send($"Port {mPortNumber} timed out!");
                 return;
             };
 
@@ -102,33 +96,20 @@ namespace Cosmos.HAL.BlockDevice.Ports
 
             while(true)
             {
-                if((mPortReg.CI & (1 << xSlot)) == 0)
-                {
-                    break;
-                }
+                if((mPortReg.CI & (1 << xSlot)) == 0) break;
                 if ((mPortReg.IS & (1 << 30)) != 0)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.Write("\n[Fatal]: ");
-                    Console.Write("Fatal error occurred while sending command!");
-                    Console.ResetColor();
+                    throw new Exception("SATA Fatal error: Command aborted");
+                    //mSATADebugger.Send("[Fatal]: Fatal error occurred while sending command!");
+                    //PortReset(mPortReg);
                     return;
                 }
             }
 
-            if ((mPortReg.IS & (1 << 30)) != 0)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.Write("\n[Fatal]: ");
-                Console.Write("Fatal error occurred while sending command!");
-                Console.ResetColor();
-                return;
-            }
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("\n[Success]: ");
-            Console.Write("Command has been sent successfully!");
-            Console.ResetColor();
+            //Console.ForegroundColor = ConsoleColor.Green;
+            //Console.Write("\n[Success]: ");
+            //Console.Write("Command has been sent successfully!");
+            //Console.ResetColor();
 
             return;
         }
@@ -144,10 +125,7 @@ namespace Cosmos.HAL.BlockDevice.Ports
                     return i;
                 xSlots >>= 1;
             }
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("\n[Error]: ");
-            Console.Write("Cannot find a free command slot!");
-            Console.ResetColor();
+            mSATAPIDebugger.Send("SATA Error: Cannot find a free command slot!");
             return -1;
         }
 
@@ -164,7 +142,7 @@ namespace Cosmos.HAL.BlockDevice.Ports
 
         public override void WriteBlock(ulong aBlockNo, ulong aBlockCount, byte[] aData)
         {
-
+            // To be implemented!
         }
     }
 }

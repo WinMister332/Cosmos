@@ -240,7 +240,7 @@ namespace Cosmos.HAL.BlockDevice
                         mAHCIDebugger.Send("Port Multiplier Drive at port " + xPortString + " found, which is not supported yet!");
                     }
                     else if (PortType != PortType.Nothing)
-                        mAHCIDebugger.Send("Unknown drive found with signature: 0x" + xPortReg.SIG);// If Implemented Port value was not zero and non of the above.
+                        throw new Exception("SATA Error");
                 }
                 xImplementedPort >>= 1;
             }
@@ -259,13 +259,16 @@ namespace Cosmos.HAL.BlockDevice
             if (xDET != DeviceDetectionStatus.DeviceDetectedWithPhy)
                 return PortType.Nothing;
 
-            switch ((AHCISignature)xSignature >> 16)
+            xSignature >>= 16;
+            
+            switch ((AHCISignature)xSignature)
             {
                 case AHCISignature.SATA: return PortType.SATA;
                 case AHCISignature.SATAPI: return PortType.SATAPI;
                 case AHCISignature.SEMB: return PortType.SEMB;
                 case AHCISignature.PortMultiplier: return PortType.PM;
                 case AHCISignature.Nothing: return PortType.Nothing;
+                default: throw new Exception("SATA Error: Unknown drive found at port: " + aPort.mPortNumber);;
             }
         }
 
