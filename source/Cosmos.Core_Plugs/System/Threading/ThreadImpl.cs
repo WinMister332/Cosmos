@@ -1,10 +1,9 @@
 using System.Threading;
 using IL2CPU.API.Attribs;
-using Console = System.Console;
 
 namespace Cosmos.Core_Plugs.System.Threading
 {
-    [Plug(Target = typeof(Thread))]
+    [Plug("System.Threading.Thread, System.Private.CoreLib")]
     public static class ThreadImpl
     {
         public static Thread GetCurrentThreadNative()
@@ -15,11 +14,6 @@ namespace Cosmos.Core_Plugs.System.Threading
         public static void MemoryBarrier()
         {
 
-        }
-
-        public static void Ctor(ThreadStart aThis, ThreadStart aEntry)
-        {
-            Console.WriteLine("Thread started");
         }
 
         //    public static void SleepInternal(int ms)

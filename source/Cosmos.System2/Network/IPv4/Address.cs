@@ -12,6 +12,7 @@ namespace Cosmos.System.Network.IPv4
         /// Predefined 0.0.0.0 address
         /// </summary>
         public static Address Zero = new Address(0, 0, 0, 0);
+        public static Address Broadcast = new Address(255, 255, 255, 255);
 
         internal byte[] address = new byte[4];
 
@@ -65,15 +66,11 @@ namespace Cosmos.System.Network.IPv4
                 return false;
         }
 
-        public bool IsBroadcastAddress()
-        {
-            if (address[0] == 255)
-            {
-                return true;
-            }
-
-            return false;
-        }
+        public bool IsBroadcastAddress() =>
+            address[0] == 0xFF
+            && address[1] == 0xFF
+            && address[2] == 0xFF
+            && address[3] == 0xFF;
 
         public bool IsAPIPA()
         {

@@ -7,56 +7,21 @@ namespace Cosmos.System.Graphics
 {
     public abstract class Canvas
     {
-        protected Mode mode;
-        protected List<Mode> availableModes;
-        static protected Mode defaultGraphicMode;
-
         protected Canvas(Mode mode)
         {
             //Global.mDebugger.SendInternal($"Creating a new Canvas with Mode ${mode}");
-
-            availableModes = getAvailableModes();
-            defaultGraphicMode = getDefaultGraphicMode();
-            this.mode = mode;
+            Mode = mode;
         }
 
-        protected Canvas()
-        {
-            Global.mDebugger.SendInternal($"Creating a new Canvas with default graphic Mode");
+        public abstract IReadOnlyList<Mode> AvailableModes { get; }
 
-            availableModes = getAvailableModes();
-            defaultGraphicMode = getDefaultGraphicMode();
-            this.mode = defaultGraphicMode;
-        }
+        public abstract Mode DefaultGraphicMode { get; }
 
-        abstract public List<Mode> getAvailableModes();
-
-        abstract protected Mode getDefaultGraphicMode();
-
-        public List<Mode> AvailableModes
-        {
-            get
-            {
-                return availableModes;
-            }
-        }
-
-        public Mode DefaultGraphicMode
-        {
-            get
-            {
-                return defaultGraphicMode;
-            }
-        }
-
-        public abstract Mode Mode
-        {
-            get;
-            set;
-        }
-
-        /* Clear all the Canvas with the Black color */
-
+        public abstract Mode Mode { get; set; }
+        
+        /// <summary>
+        /// Clear all the Canvas with the Black color.
+        /// </summary>
         public void Clear()
         {
             Clear(Color.Black);
@@ -75,9 +40,9 @@ namespace Cosmos.System.Graphics
 
             Pen pen = new Pen(color);
 
-            for (int x = 0; x < mode.Rows; x++)
+            for (int x = 0; x < Mode.Rows; x++)
             {
-                for (int y = 0; y < mode.Columns; y++)
+                for (int y = 0; y < Mode.Columns; y++)
                 {
                     DrawPoint(pen, x, y);
                 }
@@ -391,7 +356,7 @@ namespace Cosmos.System.Graphics
             DrawLine(pen, v2x, v2y, v3x, v3y);
         }
 
-        public void DrawRectangle(Pen pen, float x_start, float y_start, float width, float height)
+        public virtual void DrawRectangle(Pen pen, float x_start, float y_start, float width, float height)
         {
             throw new NotImplementedException();
         }
@@ -399,7 +364,7 @@ namespace Cosmos.System.Graphics
         //Image and Font will be available in .NET Core 2.1
         // dot net core does not have Image
         //We are using a short term solution for bitmap
-        public void DrawImage(Image image, int x, int y)
+        public virtual void DrawImage(Image image, int x, int y)
         {
             for (int _x = 0; _x < image.Width; _x++)
             {
@@ -436,7 +401,7 @@ namespace Cosmos.System.Graphics
 
             */
 
-            foreach (var elem in availableModes)
+            foreach (var elem in AvailableModes)
             {
                 if (elem == mode)
                 {
